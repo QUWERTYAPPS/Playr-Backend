@@ -1,20 +1,37 @@
+require('dotenv').config();
+
 const express = require('express');
 const app = express();
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const db = require('./util/database')
+const User = require('./models/user')
+const PlayList = require('./models/playlist')
+const PlayListItem = require('./models/playlist-item')
+const PlayListAlbum = require('./models/playlist-album')
+const PlayListAlbumItem = require('./models/playlist-album-item')
+const Album = require('./models/album')
+const AlbumItem = require('./models/album_item')
+const Song = require('./models/song')
+
+const authRoutes = require('./routes/auth')
 
 const mp3FolderPath = path.join(__dirname, 'mp3');
 
-app.use(cors())
+// app.use(cors())
 
-// app.use((req, res, next) => {
-//     res.setHeader('Access-Control-Allow-Origin', '*')
-//     res.setHeader('Access-Control-Allow-Methods', '*')
-//     // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DE')
-//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-//     next()
-// })
+
+// Playlist.belongsToMany()
+
+
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', '*')
+    // res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DE')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    next()
+})
 
 app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -38,6 +55,7 @@ app.get('/getMp3List/:filename', (req, res) => {
   const stream = fs.createReadStream(filePath);
   stream.pipe(res);
 });
+app.use(authRoutes)
 
 // Obsługa żądania GET, które zwraca listę plików mp3
 app.get('/getMp3List', (req, res) => {
@@ -60,8 +78,26 @@ app.get('/', (req, res) => {
   res.send('Witaj na mojej platformie strumieniowej!');
 });
 
-// Uruchamianie serwera
-const port = 3000; // lub inny wybrany numer portu
-app.listen(port, () => {
-  console.log(`Serwer jest uruchomiony na porcie ${port}`);
-});
+
+User.hasMany(PlayList)
+PlayList.belongsTo(User, {caontraints: true, onDelete: 'CASCADE'})
+
+User.hasMany(Album)
+Album.belongsTo(User, {caontraints: true, onDelete: 'CASCADE'})
+
+Album.hasMany(Song)
+Album.belongsToMany(Song, {through: AlbumItem})
+
+PlayList.belongsToMany(Song, {through: PlayListItem})
+PlayListAlbum.belongsToMany(Album, {through: PlayListAlbumItem})
+
+const port = process.env.PORT || 8080;
+
+db.sync({force: false})
+    .then(user => {
+        app.listen(port);
+        console.log(`server work on port = ${port}`)
+    })
+    .catch(err => {
+        console.log(err)
+    })

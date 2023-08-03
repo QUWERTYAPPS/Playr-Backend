@@ -1,0 +1,7 @@
+node_modules
+frontend
+
+.package-lock.json
+.env
+.app2
+.index

@@ -19,13 +19,14 @@ exports.signup = async (req, res, next) => {
   const name = req.body.name || 'test'
   const password = req.body.password || 'test'
   try {
+    // console.log(errors)
 
-    if (!errors.isEmpty()) {
-      const error = new Error('Validation failed.');
-      error.statusCode = 422;
-      error.data = errors.array();
-      throw error;
-    }
+    // if (!errors.isEmpty()) {
+    //   const error = new Error('Validation failed.');
+    //   error.statusCode = 422;
+    //   error.data = errors.array();
+    //   throw error;
+    // }
 
     const hashedPw = await bcrypt.hash(password, 12);
 
@@ -42,18 +43,18 @@ exports.signup = async (req, res, next) => {
 }
 
 exports.login = async (req, res, next) => {
+  console.log(req.body)
   const errors = validationResult(req);
   const email = req.body.email
   const password = req.body.password
   try{
-    if (!errors.isEmpty()) {
-      const error = new Error('Validation failed.');
-      error.statusCode = 422;
-      error.data = errors.array();
-      throw error;
-    }
-    const user = await User.findOne({where: {email: 'te23123@gmail.com'}})
-    console.log(user)
+    // if (!errors.isEmpty()) {
+    //   const error = new Error('Validation failed.');
+    //   error.statusCode = 422;
+    //   error.data = errors.array();
+    //   throw error;
+    // }
+    const user = await User.findOne({where: {email: email}})
     if (!user) {
       const error = new Error('A user with this email could not be found.');
       error.statusCode = 401;
@@ -70,8 +71,9 @@ exports.login = async (req, res, next) => {
 
     const token = jwt.sign(
       {
-        email: user.dataValues.email,
-        userId: user.dataValues.id
+        id: user.dataValues.id,
+        email: user.dataValues.id
+
       },process.env.SECRET_KEY, {expiresIn: '24h'}
     )
 

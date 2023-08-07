@@ -18,9 +18,10 @@ const AlbumItem = require("./models/album_item");
 const Song = require("./models/song");
 
 const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/user")
 
 app.use(bodyParser.json());
-app.use(multer().single("image"));
+app.use(multer().single('image'));
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -29,15 +30,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((req, res, next) => {
-    User.findByPk(1)
-    .then(user => {
-        req.user = user
-        next()
-    })
-    .catch(err => console.log(err))
-})
+// app.use((req, res, next) => {
+//     User.findByPk(1)
+//     .then(user => {
+//         req.user = user
+//         next()
+//     })
+//     .catch(err => console.log(err))
+// })
+
 app.use("/auth", authRoutes);
+app.use(userRoutes)
 
 app.use((error, req, res, next) => {
     console.log(error)

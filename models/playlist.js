@@ -11,11 +11,7 @@ const PlayList = db.define("playList", {
   title: {
     type: Sequelize.STRING,
     allowNull: false,
-  },
-  image: {
-    type: Sequelize.BLOB,
-    allowNull: true,
-  },
+  }
 });
 
 module.exports = PlayList;

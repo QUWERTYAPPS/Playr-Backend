@@ -12,11 +12,7 @@ const Album = db.define("album", {
   title: {
     type: Sequelize.STRING,
     allowNull: false,
-  },
-  image: {
-    type: Sequelize.BLOB,
-    allowNull: true,
-  },
+  }
 });
 
 module.exports = Album;

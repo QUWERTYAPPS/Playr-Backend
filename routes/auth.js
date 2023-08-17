@@ -1,12 +1,13 @@
 const express = require('express');
 const { body } = require('express-validator');
-const authController = require('../controllers/authControllers')
+const authController = require('../controllers/auth')
 const User = require('../models/user')
+const multer = require("multer");
 const isAuth = require('../middleware/is-auth')
 
 const router = express.Router();
 
-router.post('/signup', [
+router.post('/signup', multer().none(),[
     body('email')
     .isEmail()
     .withMessage('Prosze podać poprawny e mail')
@@ -22,7 +23,7 @@ router.post('/signup', [
     body('name').trim().not().isEmpty()
 ], authController.signup)
 
-router.post('/login',[
+router.post('/login',multer().none(),[
     body('email')
     .isEmail()
     .withMessage('Prosze podać poprawny e mail'),

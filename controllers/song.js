@@ -4,7 +4,7 @@ const fs = require("fs");
 exports.streamingSong = async (req, res, next) => {
   const audioFolderPath = path.join(__dirname, "../uploads/audio");
   const filename = req.params.filename;
-  console.log(filename)
+  // console.log(filename)
   const filePath = path.join(audioFolderPath, filename);
 
   try {

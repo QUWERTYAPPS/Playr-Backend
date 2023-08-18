@@ -15,12 +15,12 @@ exports.getAlbums = async (req, res, next) => {
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
-      next(err);
     }
+    next(err);
   }
 };
 
-exports.addAlbum = async(req, res, next) => {
+exports.addAlbum = async (req, res, next) => {
   const errors = validationResult(req);
   const maxCountAlbums = 3;
   const userID = req.user.id;
@@ -47,7 +47,7 @@ exports.addAlbum = async(req, res, next) => {
       throw error;
     }
     if (user.albums.length < maxCountAlbums) {
-      await user.createAlbum({ title: title });
+      await user.createAlbum({ title: title , artist: user.name});
       res.status(200).json({ message: "Album was created." });
     } else {
       res.status(200).json({ message: "You have too many albums" });
@@ -73,8 +73,8 @@ exports.getOneAlbum = async (req, res, next) => {
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
-      next(err);
     }
+    next(err);
   }
 };
 
@@ -99,18 +99,27 @@ exports.getAlbumSongs = async (req, res, next) => {
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
-      next(err);
     }
+    next(err);
   }
 };
 
 exports.addSongToAlbum = async (req, res, next) => {
+  const errors = validationResult(req);
   const albumID = req.params.albumsID;
   const userID = req.user.id;
   const title = req.body.title || "test";
   const audioFilename = req.files.audio[0].filename;
   const image = req.files.image[0].path.replace("\\", "/");
+  // console.log("test")
+  // console.log(errors.errors[0])
   try {
+    if (errors.errors[0]) {
+      const error = new Error("Validation failed.");
+      error.statusCode = 422;
+      error.data = errors.array();
+      throw error;
+    }
     const user = await User.findOne({
       where: { id: userID },
     });
@@ -128,7 +137,6 @@ exports.addSongToAlbum = async (req, res, next) => {
       error.statusCode = 422;
       throw error;
     }
-    console.log(album)
     await album.createSong({
       title: title,
       filename: audioFilename,
@@ -139,7 +147,7 @@ exports.addSongToAlbum = async (req, res, next) => {
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
-      next(err);
     }
+    next(err);
   }
 };

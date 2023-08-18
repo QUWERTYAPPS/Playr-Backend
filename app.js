@@ -6,12 +6,9 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const db = require("./util/database");
 const User = require("./models/user");
-const PlayList = require("./models/playlist");
-const PlayListItem = require("./models/playlist-item");
-const PlayListAlbum = require("./models/playlist-album");
-const PlayListAlbumItem = require("./models/playlist-album-item");
+const Playlist = require("./models/Playlist");
+const PlaylistItem = require("./models/playlist-item");
 const Album = require("./models/album");
-const AlbumItem = require("./models/album_item");
 const Song = require("./models/song");
 
 // rouets
@@ -33,16 +30,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
-app.use((req, res, next) => {
-  User.findByPk(1)
-    .then(user => {
-        req.user = user
-        next()
-    })
-    .catch(err => console.log(err))
-})
-
 app.use("/auth", authRoutes);
 app.use("/api", apiRoutes);
 
@@ -54,8 +41,8 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message: message, data: data, error: error});
 });
 
-User.hasMany(PlayList);
-PlayList.belongsTo(User, { caontraints: true, onDelete: "CASCADE" });
+User.hasMany(Playlist);
+Playlist.belongsTo(User, { caontraints: true, onDelete: "CASCADE" });
 
 User.hasMany(Album);
 Album.belongsTo(User, { caontraints: true, onDelete: "CASCADE" });
@@ -63,27 +50,13 @@ Album.belongsTo(User, { caontraints: true, onDelete: "CASCADE" });
 Album.hasMany(Song);
 // Album.belongsToMany(Song, { through: AlbumItem });
 
-PlayList.belongsToMany(Song, { through: PlayListItem });
-PlayListAlbum.belongsToMany(Album, { through: PlayListAlbumItem });
+Playlist.belongsToMany(Song, { through: PlaylistItem });
+// PlaylistAlbum.belongsToMany(Album, { through: PlaylistAlbumItem });
 
 const port = process.env.PORT || 8080;
 
 // {force: false}
-db.sync({ force: false })
-  .then(result => {
-    return User.findByPk(1);
-  })
-  .then(user => {
-    if (!user) {
-      return User.create({
-        name: "Max",
-        email: "text@gmail.com",
-        password: "test",
-      });
-    }
-
-    return user;
-  })
+db.sync({ force: false})
   .then(user => {
     app.listen(port);
     console.log(`server work on port = ${port}`);

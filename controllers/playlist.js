@@ -1,35 +1,17 @@
-const PlayList = require("../models/playlist");
-const Album = require("../models/album");
+const Playlist = require("../models/Playlist");
 const User = require("../models/user");
 const Song = require("../models/song");
-const path = require("path");
-const fs = require("fs");
-
-exports.addNewPlaylist = async (req, res, next) => {
-  const userId = req.user.id;
-  try {
-    const title = req.body.title || "test";
-    const imageUrl = req.file.path.replace("\\" ,"/");
-    console.log(title)
-    const user = await User.findOne({ where: { id: userId } });
-    await user.createPlayList({ title: title, image: imageUrl });
-    res.status(200).json({ message: "creating playlist" });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
+const { validationResult } = require("express-validator");
 
 exports.getPlaylist = async (req, res, next) => {
-  const userId = req.user.id;
   try {
-    const user = await User.findOne({
-      where: { id: userId },
-      include: { model: PlayList },
-    });
-    res.status(200).json({ userId: userId, playlist: user.playlists });
+    const Playlist = await Playlist.findAll();
+    if (!Playlist) {
+      const error = new Error("Cannot find any Playlist, please create one.");
+      error.statusCode = 422;
+      throw error;
+    }
+    res.status(200).json({ message: "All Playlist", Playlists: Playlist });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
@@ -38,20 +20,134 @@ exports.getPlaylist = async (req, res, next) => {
   }
 };
 
-exports.addNewAlbum = async (req, res, next) => {
-  const userId = req.user.id;
-  try {
-    const title = req.body.title || "test";
-    const imageUrl = req.file.path.replace("\\" ,"/");
+exports.getAllMePlaylist = async (req, res, next) => {
+  const userID = req.user.id
+  // console.log(userID)
+  try{
     const user = await User.findOne({
-      where: { id: userId },
-      include: { model: Album }, 
+      where: {id: userID},
+      include: {model: Playlist}
+    })
+
+    if (!user) {
+      const error = new Error("User does not exist");
+      error.statusCode = 422;
+      throw error;
+    }
+    // console.log(user)
+    res.status(200).json({message: "your all Playlist", Playlist: user.Playlists})
+  }catch(err){
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+}
+
+exports.addPlaylist = async (req, res, next) => {
+  const errors = validationResult(req);
+  const userID = req.user.id;
+  const title = req.body.title || "test";
+  console.log(errors)
+  try {
+    if (errors.errors[0]) {
+      const error = new Error("Validation failed.");
+      error.statusCode = 422;
+      error.data = errors.array();
+      throw error;
+    }
+    const user = await User.findOne({
+      where: {
+        id: userID,
+      },
     });
-    if (user.albums.length < 3) {
-      await user.createAlbum({ title: title, image: imageUrl });
-      res.status(200).json({ message: "creating album" });
+
+    if (!user) {
+      const error = new Error("User does not exist");
+      error.statusCode = 422;
+      throw error;
+    }
+    await user.createPlaylist({ title: title });
+    res.status(200).json({ message: "Playlist was created." });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getOnePlaylist = async (req, res, next) => {
+  const PlaylistID = req.params.PlaylistID;
+  try {
+    const Playlist = await Playlist.findOne({ where: { id: PlaylistID } });
+    if (!Playlist) {
+      const error = new Error("Cannot find this Playlist");
+      error.statusCode = 422;
+      throw error;
+    }
+    res.status(200).json({ message: "Playlist by id", Playlist: Playlist });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getPlaylistSongs = async (req, res, next) => {
+  const PlaylistID = req.params.PlaylistID;
+  try {
+    const Playlist = await Playlist.findOne({
+      where: {
+        id: PlaylistID,
+      },
+      include: {
+        model: Song,
+      },
+    });
+    if (!Playlist) {
+      const error = new Error("Cannot find this Playlist");
+      error.statusCode = 422;
+      throw error;
+    }
+    const songs = Playlist.songs;
+    res.status(200).json({ message: "Playlist Songs", songs: songs });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.addSongToPlaylist = async (req, res, next) => {
+  const playlistID = req.params.playlistID;
+  const songID = req.params.songID;
+  const userID = req.user.id;
+  
+  try {
+    const user = await User.findOne({ where: { id: userID } });
+  
+    if (!user) {
+      const error = new Error("User does not exist");
+      error.statusCode = 422;
+      throw error;
+    }
+  
+    const Playlists = await user.getPlaylists({ where: { id: playlistID } });
+  
+    if (Playlists.length > 0) {
+      const Playlist = Playlists[0];
+      const songs = await Playlist.getSongs({ where: { id: songID } });
+      if (!songs[0]) {
+        await Playlist.addSong(songID)
+        res.status(200).json({ message: "song added to Playlist" });
+      } else {
+        res.status(200).json({ message: "The song already exists in your Playlist" });
+      }
     } else {
-      res.status(405).json({ message: "don't can creat album" });
+      res.status(404).json({ message: "There is no such Playlist." });
     }
   } catch (err) {
     if (!err.statusCode) {
@@ -59,105 +155,6 @@ exports.addNewAlbum = async (req, res, next) => {
     }
     next(err);
   }
+  
 };
 
-exports.getAlbum = async (req, res) => {
-  const userId = req.user.id;
-  try {
-    const user = await User.findOne({
-      where: { id: userId },
-      include: { model: Album },
-    });
-    res.status(200).json({ userId: userId, album: user.albums });
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
-    next(err);
-  }
-};
-
-exports.addSongToAlbum = async (req, res) => {
-  const userId = req.user.id;
-  const file = req.files
-  const id_album = 1
-  const name = "test"
-  const artist = 'test2'
-  // console.log(file.audio[0].path.replace("\\" ,"/"))
-  const audio = file.audio[0].path.replace("\\" ,"/")
-  // const image = file.image[0].path.replace("\\" ,"/")
-  const user = await User.findOne({
-    where: { id: userId },
-    include: { model: Album},
-  });
-  console.log('user',user)
-  // console.log('albums', user.albums)
-  // const album = user.albums.album.dataValues
-  // console.log(user.albums[1].dataValues)
-  // console.log('tset',user.albums.filter((prevdata) => prevdata.dataValues.id == id_album))
-  // const album = user.albums.filter((prevdata) => prevdata.dataValues.id == id_album)
-  // const album = await user.albums[0]
-  const album = user.albums.filter((prevdata) => prevdata.dataValues.id == id_album)
-  console.log(album)
-  await album[0].createSong({title:name, artist: artist, file: audio});
-
-  // await user.albums.createSong({title:name, artist: artist, file: audio});
-};
-
-exports.getMp3Audio = async (req, res,next) => {
-  const mp3FolderPath = path.join(__dirname, "../uploads/audio");
-  const filename = req.params.name;
-  // console.log(mp3FolderPath)
-  const filePath = path.join(mp3FolderPath, filename+ '.mp3');
-  console.log(filePath)
-
-  try {
-    if (!fs.existsSync(filePath)) {
-      console.log(4)
-      // return res.status(404).send("Plik nie istnieje.");
-    }
-
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
-    console.log(1)
-    const stream = fs.createReadStream(filePath);
-    console.log(2)
-    stream.pipe(res);
-  } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-      next(err);
-    }
-  }
-};
-
-exports.addtoplaylist = async (req, res) => {
-  const userId = req.user.id;
-  const file = req.files
-  const id_playlist= 1
-  const id_song = 1
-  const name = "test"
-  const artist = 'test2'
-  // console.log(file.audio[0].path.replace("\\" ,"/"))
-  const audio = file.audio[0].path.replace("\\" ,"/")
-  // const image = file.image[0].path.replace("\\" ,"/")
-  const user = await User.findOne({
-    where: { id: userId },
-    include: { model: PlayList},
-  });
-  console.log('user',user)
-
-  const playlist = user.playlists.filter((prevdata) => prevdata.dataValues.id == id_album)
-  console.log(playlist)
-  playlist[0].addSong({where: {id: id_song}})
-
-}
-
-exports.getAlbumSong = async(req, res, next) => {
-  const id_album = req.params.albumId
-  console.log("work ",id_album)
-  const album = await Album.findOne({where: {id: id_album}, include: {model: Song}})
-  // console.log(album)
-  res.status(200).json({album: album})
-
-}

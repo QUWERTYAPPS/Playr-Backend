@@ -30,7 +30,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/auth", authRoutes);
+
+// app.use((req, res, next) => {
+//   User.findByPk(1)
+//     .then(user => {
+//         req.user = user
+//         next()
+//     })
+//     .catch(err => console.log(err))
+// })
+
+app.use("/api/auth", authRoutes);
 app.use("/api", apiRoutes);
 
 app.use((error, req, res, next) => {
@@ -57,6 +67,20 @@ const port = process.env.PORT || 8080;
 
 // {force: false}
 db.sync({ force: false})
+  .then(result => {
+    return User.findByPk(1);
+  })
+  // .then(user => {
+  //   if (!user) {
+  //     return User.create({
+  //       name: "Max",
+  //       email: "text@gmail.com",
+  //       password: "test",
+  //     });
+  //   }
+
+  //   return user;
+  // })
   .then(user => {
     app.listen(port);
     console.log(`server work on port = ${port}`);
